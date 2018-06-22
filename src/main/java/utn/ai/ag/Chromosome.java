@@ -17,7 +17,7 @@ public class Chromosome {
 		// configurar ubicacion de reinas
 		for(int i=0; i<values.length; i++){
 			int row = values[i];
-			int column = i;
+			int column = i+1;
 			Gen queen = new Gen(row, column);
 			genes.add(queen);
 		}
@@ -35,12 +35,14 @@ public class Chromosome {
 					int rx = genes.get(i).getRow();
 					int ry = genes.get(j).getRow();
 					if(rx == ry) { // filas
+						genes.get(i).setFree(false); // reina amenazada
 						clashes++;
 					}
 					
 					int dx = Math.abs(rx - ry);
 					int dy = Math.abs(genes.get(i).getColumn() - genes.get(j).getColumn());
 					if(dx == dy) { // diagonales
+						genes.get(i).setFree(false); // reina amenazada
 						clashes++;
 					}
 				}
@@ -55,7 +57,7 @@ public class Chromosome {
 	
 	public void setAptitud() {
 		int nQueens = genes.size();
-		int maxClashes = (nQueens * (nQueens-1)) / 2;
+		int maxClashes = (nQueens * (nQueens-1)) / 2; // valor maximo --> N*(N-1)/2
 		this.aptitud = 100 - ((this.fitness * 100) / maxClashes);
 	}
 	

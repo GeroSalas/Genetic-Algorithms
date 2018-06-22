@@ -15,29 +15,22 @@ import java.util.stream.Collectors;
  * @author GeronimoSalas
  *
  */
-public class App {
-	// N reinas --> tablero NxN
-	public static final int N_QUEENS = 8;
+public class Algorithm {
+
+	// default inputs
+	public static int N_QUEENS = 8;
+	public static int POBLATION_COUNT = 100;		
+	public static int MAX_GENERATIONS = 5000;
+	public static double P_MUTATION = 0.02;
 	
-	// numero de individuos en poblacion inicial
-	public static final int POBLATION_COUNT = 100;		
-	
-	// maximo numero de iteraciones (corte)
-	public static final int MAX_GENERATIONS = 1000;
-	
-	// probabilidad de mutacion
-	public static final double P_MUTATION = 0.05;
-	
-	// funcion fitness (valor objetivo) --> N*(N-1)/2
-	public static final int FITNESS = (N_QUEENS*(N_QUEENS-1)) / 2;
-	
-	// un posible vector solucion en tablero 8x8
-	public static final Integer[] V_SOLUTION = new Integer[] { 2,4,6,8,3,1,7,5 };
-	
-    
-	public static void main(String[] args) {
+	public static Solution execute(int queens, int poblation, int iterations, int mutation) {
     	// timer start
     	long startTime = System.currentTimeMillis();    
+    	
+    	N_QUEENS = queens;
+    	POBLATION_COUNT = poblation;
+    	MAX_GENERATIONS = iterations;
+    	P_MUTATION = mutation;
     	
     	Utils.log("INPUTS:");
     	Utils.log("N_QUEENS = " + N_QUEENS);
@@ -51,7 +44,7 @@ public class App {
     	Utils.log("Inicializando poblacion...");
     	List<Chromosome> poblacion = generateInitialPoblation();
     	Chromosome optimo =  null;
-        
+    	
         for(int generation=1; generation<=MAX_GENERATIONS; generation++) {
         	Utils.log("Generacion #" + generation);
             /*************************************************************
@@ -64,9 +57,11 @@ public class App {
             Chromosome padreA = poblacion.get(0);
             Chromosome padreB = poblacion.get(1);
             
+            // los padres deben ser diferentes para lograr mejores hijos
+            int rankingOrder = 1;
             while(padreA.equals(padreB)) {
-            	int tops = (int) poblacion.stream().filter(c -> c.getFitness() == padreA.getFitness()).count();
-            	padreB = poblacion.get(randomNumber(tops)); // azar
+            	rankingOrder++;
+            	padreB = poblacion.get(rankingOrder);
             }
             
             padreA.printInfo();
@@ -89,23 +84,36 @@ public class App {
             nuevos.add(padreA);
             nuevos.add(padreB);
             // reproducimos nuevos hijos manteniendo los padres
-            for(int i=0; i<POBLATION_COUNT-2; i++) {
+            for(int i=0; i<(POBLATION_COUNT-2)/2; i++) {
             	int a = (Math.random() > 0.5) ? 1 : 0;
             	int b = (a == 1) ? 0 : 1;
             	int punto = randomNumber(N_QUEENS); // one-point aleatorio
-            	List<Gen> subgenesA = nuevos.get(a).getGenes().stream().limit(punto).collect(Collectors.toList());
-            	List<Gen> subgenesB = nuevos.get(b).getGenes().stream().skip(punto).collect(Collectors.toList());
+            	//1
+            	List<Gen> subgenesA1 = nuevos.get(a).getGenes().stream().limit(punto).collect(Collectors.toList());
+            	List<Gen> subgenesB1 = nuevos.get(b).getGenes().stream().skip(punto).collect(Collectors.toList());
+            	List<Gen> mezcla1 = new ArrayList<>(subgenesA1);
+            	mezcla1.addAll(subgenesB1);
+            	//2
+            	List<Gen> subgenesA2 = nuevos.get(a).getGenes().stream().skip(punto).collect(Collectors.toList());
+            	List<Gen> subgenesB2 = nuevos.get(b).getGenes().stream().limit(punto).collect(Collectors.toList());
+            	List<Gen> mezcla2 = new ArrayList<>(subgenesA2);
+            	mezcla2.addAll(subgenesB2);
             	
-            	List<Gen> mezcla = new ArrayList<>(subgenesA);
-            	mezcla.addAll(subgenesB);
-            	
-            	Integer[] values = new Integer[N_QUEENS];
+            	Integer[] values1 = new Integer[N_QUEENS];
+            	Integer[] values2 = new Integer[N_QUEENS];
             	for(int v=0; v<N_QUEENS; v++) {
-            		values[v] = mezcla.get(v).getRow();
+            		values1[v] = mezcla1.get(v).getRow();
+            		values2[v] = mezcla2.get(v).getRow();
             	}
             	
-            	Chromosome cromosoma = new Chromosome(values);
-            	nuevos.add(cromosoma);
+            	// nuevos hijos reproducidos
+            	Chromosome hijo1 = new Chromosome(values1);
+            	Chromosome hijo2 = new Chromosome(values1);
+            	nuevos.add(hijo1);
+            	nuevos.add(hijo2);
+            	
+            	//hijo1.printInfo();
+            	//hijo2.printInfo();
             }
             
             /***************************************************************
@@ -141,19 +149,23 @@ public class App {
             
             // poblacion evolucionada para ser evaluada en la siguiente iteracion
             poblacion = new ArrayList<>(nuevos);
+            Collections.shuffle(poblacion);
         }
         
         // RESULTADO
         if(optimo == null) {
+        	poblacion.sort(Comparator.comparingInt(Chromosome::getFitness));
         	optimo = poblacion.get(0);
         	Utils.log("SOLUCION MAS OPTIMA ENCONTRADA");
-            optimo.printInfo();     
+            optimo.printInfo();   
         }   
         
         // timer stop
     	long stopTime = System.currentTimeMillis();
     	long timing = stopTime - startTime;
     	Utils.log("Tiempo de ejecucion: " + timing + "ms");
+    	
+    	return new Solution(optimo);
     }
     
 	
